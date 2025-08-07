@@ -197,7 +197,6 @@ venue_final_code/
 ├── app.py                 # Main Flask application
 ├── models.py             # Database models
 ├── run.py               # Application entry point
-├── setup.py             # Setup script
 ├── requirements.txt      # Python dependencies
 ├── README.md            # This file
 ├── .gitignore           # Git ignore rules
