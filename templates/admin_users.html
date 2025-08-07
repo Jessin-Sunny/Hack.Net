@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}User Management - Venue Booking System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2><i class="fas fa-users-cog"></i> User Management</h2>
+        <p class="text-muted">Manage system users, assign representative powers, and control account access</p>
+    </div>
+</div>
+
+<!-- Add New User -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-user-plus"></i> Add New User</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_user') }}">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Role *</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="">Select role</option>
+                                    <option value="faculty">Faculty</option>
+                                    <option value="student">Student</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_representative" name="is_representative">
+                                    <label class="form-check-label" for="is_representative">
+                                        Representative
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-plus"></i> Add User
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Statistics -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> User Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2">
+                        <h4 class="text-primary">{{ users|length }}</h4>
+                        <small>Total Users</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-success">{{ users|selectattr('role', 'equalto', 'faculty')|list|length }}</h4>
+                        <small>Faculty</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-info">{{ users|selectattr('role', 'equalto', 'student')|list|length }}</h4>
+                        <small>Students</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-warning">{{ users|selectattr('is_representative', 'equalto', true)|list|length }}</h4>
+                        <small>Representatives</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-danger">{{ users|selectattr('is_active', 'equalto', false)|list|length }}</h4>
+                        <small>Inactive</small>
+                    </div>
+                    <div class="col-md-2">
+                        <h4 class="text-secondary">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h4>
+                        <small>Admins</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User List -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list"></i> All Users</h5>
+            </div>
+            <div class="card-body">
+                {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Representative</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ user.username }}</strong>
+                                        {% if user.id == session.user_id %}
+                                            <span class="badge bg-primary">You</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if user.role == 'faculty' else 'success' if user.role == 'student' else 'secondary' }}">
+                                            {{ user.role|title }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if user.is_active else 'danger' }}">
+                                            {{ 'Active' if user.is_active else 'Inactive' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if user.role == 'student' %}
+                                            <span class="badge bg-{{ 'warning' if user.is_representative else 'secondary' }}">
+                                                {{ 'Yes' if user.is_representative else 'No' }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        {% if user.id != session.user_id %}
+                                            {% if user.role == 'student' %}
+                                                <a href="{{ url_for('toggle_representative', user_id=user.id) }}" 
+                                                   class="btn btn-sm btn-{{ 'warning' if user.is_representative else 'outline-warning' }}"
+                                                   title="{{ 'Revoke' if user.is_representative else 'Grant' }} representative status">
+                                                    <i class="fas fa-{{ 'star' if user.is_representative else 'star-o' }}"></i>
+                                                    {{ 'Revoke' if user.is_representative else 'Grant' }}
+                                                </a>
+                                            {% endif %}
+                                            
+                                            <a href="{{ url_for('toggle_user_active', user_id=user.id) }}" 
+                                               class="btn btn-sm btn-{{ 'danger' if user.is_active else 'success' }}"
+                                               title="{{ 'Deactivate' if user.is_active else 'Activate' }} account">
+                                                <i class="fas fa-{{ 'ban' if user.is_active else 'check' }}"></i>
+                                                {{ 'Deactivate' if user.is_active else 'Activate' }}
+                                            </a>
+                                            
+                                            <a href="{{ url_for('delete_user', user_id=user.id) }}" 
+                                               class="btn btn-sm btn-outline-danger"
+                                               onclick="return confirm('Are you sure you want to delete this user? This action cannot be undone.')"
+                                               title="Delete user">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">Current user</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No users found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Information -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Security Features</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle text-success"></i> Admin-Only User Creation</h6>
+                        <ul class="list-unstyled">
+                            <li>• Only administrators can create new user accounts</li>
+                            <li>• Public registration is disabled for security</li>
+                            <li>• All user accounts are managed centrally</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle text-success"></i> Representative System</h6>
+                        <ul class="list-unstyled">
+                            <li>• Admins can designate student representatives</li>
+                            <li>• Representatives have enhanced booking privileges</li>
+                            <li>• Account status can be activated/deactivated</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

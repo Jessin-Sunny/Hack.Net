@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard - Venue Booking System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2><i class="fas fa-chalkboard-teacher"></i> Faculty Dashboard</h2>
+        <p class="text-muted">Manage your venue bookings with priority access</p>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <a href="{{ url_for('new_booking') }}" class="btn btn-primary btn-lg w-100 mb-2">
+                            <i class="fas fa-calendar-plus"></i> New Booking
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-outline-primary btn-lg w-100 mb-2" onclick="checkAvailability()">
+                            <i class="fas fa-search"></i> Check Availability
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="#booking-history" class="btn btn-outline-secondary btn-lg w-100 mb-2">
+                            <i class="fas fa-history"></i> View History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Availability Checker -->
+<div class="row mb-4" id="availability-section" style="display: none;">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-search"></i> Check Venue Availability</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="venue-select" class="form-label">Venue</label>
+                        <select class="form-select" id="venue-select">
+                            <option value="">Select a venue</option>
+                            {% for venue in venues %}
+                                <option value="{{ venue.id }}">{{ venue.name }} ({{ venue.location }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="date-select" class="form-label">Date</label>
+                        <input type="date" class="form-control" id="date-select" min="{{ today }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100" onclick="loadAvailability()">
+                            <i class="fas fa-search"></i> Check
+                        </button>
+                    </div>
+                </div>
+                <div id="availability-results" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Bookings -->
+<div class="row mb-4" id="booking-history">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> My Bookings</h5>
+            </div>
+            <div class="card-body">
+                {% if bookings %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Venue</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Document</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in bookings %}
+                                <tr>
+                                    <td>{{ booking.venue.name }}</td>
+                                    <td>{{ booking.date.strftime('%Y-%m-%d') }}</td>
+                                    <td><span class="time-slot">{{ booking.time_slot }}</span></td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if booking.status == 'Approved' else 'danger' if booking.status == 'Rejected' else 'secondary' if booking.status == 'Cancelled' else 'warning' }}">
+                                            {{ booking.status }}
+                                        </span>
+                                        {% if booking.override_user %}
+                                            <br><small class="text-muted">Overridden by {{ booking.override_user.username }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if booking.document_path %}
+                                            <a href="{{ url_for('uploaded_file', filename=booking.document_path) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                <i class="fas fa-file"></i> View
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">No document</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if booking.status == 'Pending' %}
+                                            <a href="{{ url_for('delete_booking', booking_id=booking.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this booking?')">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </a>
+                                        {% elif booking.status == 'Approved' %}
+                                            <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}" class="btn btn-sm btn-warning" onclick="return confirm('Are you sure you want to cancel this approved booking?')">
+                                                <i class="fas fa-ban"></i> Cancel
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No bookings found. <a href="{{ url_for('new_booking') }}">Create your first booking</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Faculty Privileges Info -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Faculty Privileges</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle text-success"></i> Priority Access</h6>
+                        <ul class="list-unstyled">
+                            <li>• Can override both regular students and representatives</li>
+                            <li>• Highest priority for venue allocation</li>
+                            <li>• Automatic approval for urgent requests</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-exclamation-triangle text-warning"></i> Important Notes</h6>
+                        <ul class="list-unstyled">
+                            <li>• Student and representative bookings will be overridden</li>
+                            <li>• Please provide proper documentation</li>
+                            <li>• Contact admin for special arrangements</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function checkAvailability() {
+    const section = document.getElementById('availability-section');
+    section.style.display = section.style.display === 'none' ? 'block' : 'none';
+}
+
+function loadAvailability() {
+    const venueId = document.getElementById('venue-select').value;
+    const date = document.getElementById('date-select').value;
+    
+    if (!venueId || !date) {
+        alert('Please select both venue and date');
+        return;
+    }
+    
+    fetch(`/api/availability?venue_id=${venueId}&date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            displayAvailability(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error checking availability');
+        });
+}
+
+function displayAvailability(data) {
+    const resultsDiv = document.getElementById('availability-results');
+    let html = '<h6>Availability for selected date:</h6><div class="row">';
+    
+    const timeSlots = ['09:00-10:00', '10:00-11:00', '11:00-12:00', '12:00-13:00',
+                       '13:00-14:00', '14:00-15:00', '15:00-16:00', '16:00-17:00'];
+    
+    timeSlots.forEach(slot => {
+        const slotData = data[slot];
+        const isAvailable = slotData.available;
+        const statusClass = isAvailable ? 'success' : 'danger';
+        const statusText = isAvailable ? 'Available' : 'Booked';
+        
+        html += `
+            <div class="col-md-3 mb-2">
+                <div class="card border-${statusClass}">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">${slot}</h6>
+                        <span class="badge bg-${statusClass}">${statusText}</span>
+                        ${!isAvailable ? `<br><small class="text-muted">by ${slotData.booked_by} (${slotData.user_role})</small>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    resultsDiv.innerHTML = html;
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Venue Booking System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h2>
+        <p class="text-muted">Manage all bookings, venues, and users</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-calendar-check fa-2x text-success mb-2"></i>
+                <h5 class="card-title">{{ bookings|selectattr('status', 'equalto', 'Approved')|list|length }}</h5>
+                <p class="card-text">Approved Bookings</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                <h5 class="card-title">{{ bookings|selectattr('status', 'equalto', 'Pending')|list|length }}</h5>
+                <p class="card-text">Pending Requests</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-building fa-2x text-primary mb-2"></i>
+                <h5 class="card-title">{{ venues|length }}</h5>
+                <p class="card-text">Total Venues</p>
+            </div>
+        </div>
+    </div>
+                        <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <i class="fas fa-users fa-2x text-info mb-2"></i>
+                                <h5 class="card-title">{{ users|length }}</h5>
+                                <p class="card-text">Registered Users</p>
+                                <small class="text-muted">{{ users|selectattr('is_active', 'equalto', true)|list|length }} active</small>
+                            </div>
+                        </div>
+                    </div>
+</div>
+
+<!-- Pending Bookings -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Pending Booking Requests</h5>
+            </div>
+            <div class="card-body">
+                {% set pending_bookings = bookings|selectattr('status', 'equalto', 'Pending')|list %}
+                {% if pending_bookings %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Venue</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Document</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for booking in pending_bookings %}
+                                <tr>
+                                    <td>{{ booking.user.username }}</td>
+                                    <td><span class="badge bg-{{ 'primary' if booking.user.role == 'faculty' else 'success' }}">{{ booking.user.role|title }}</span></td>
+                                    <td>{{ booking.venue.name }}</td>
+                                    <td>{{ booking.date.strftime('%Y-%m-%d') }}</td>
+                                    <td><span class="time-slot">{{ booking.time_slot }}</span></td>
+                                    <td>
+                                        {% if booking.document_path %}
+                                            <a href="{{ url_for('uploaded_file', filename=booking.document_path) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                <i class="fas fa-file"></i> View
+                                            </a>
+                                        {% else %}
+                                            <span class="text-muted">No document</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set conflicts = [] %}
+                                        {% for approved_booking in bookings|selectattr('status', 'equalto', 'Approved') %}
+                                            {% if approved_booking.venue_id == booking.venue_id and approved_booking.date == booking.date and approved_booking.id != booking.id %}
+                                                {% set approved_start, approved_end = approved_booking.time_slot.split('-') %}
+                                                {% set new_start, new_end = booking.time_slot.split('-') %}
+                                                {% if (new_start < approved_end and new_end > approved_start) %}
+                                                    {% set _ = conflicts.append(approved_booking) %}
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if conflicts %}
+                                            <div class="mb-2">
+                                                <small class="text-warning">
+                                                    <i class="fas fa-exclamation-triangle"></i> Conflicts with:
+                                                    {% for conflict in conflicts %}
+                                                        {{ conflict.user.username }} ({{ conflict.time_slot }})
+                                                        {% if not loop.last %}, {% endif %}
+                                                    {% endfor %}
+                                                </small>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <a href="{{ url_for('approve_booking', booking_id=booking.id) }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check"></i> Approve
+                                        </a>
+                                        <a href="{{ url_for('reject_booking', booking_id=booking.id) }}" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-times"></i> Reject
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No pending booking requests.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All Bookings -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-list"></i> All Bookings</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Venue</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Document</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for booking in bookings %}
+                            <tr>
+                                <td>{{ booking.user.username }}</td>
+                                <td><span class="badge bg-{{ 'primary' if booking.user.role == 'faculty' else 'success' }}">{{ booking.user.role|title }}</span></td>
+                                <td>{{ booking.venue.name }}</td>
+                                <td>{{ booking.date.strftime('%Y-%m-%d') }}</td>
+                                <td><span class="time-slot">{{ booking.time_slot }}</span></td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if booking.status == 'Approved' else 'danger' if booking.status == 'Rejected' else 'secondary' if booking.status == 'Cancelled' else 'warning' }}">
+                                        {{ booking.status }}
+                                    </span>
+                                    {% if booking.override_user %}
+                                        <br><small class="text-muted">Overridden by {{ booking.override_user.username }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.document_path %}
+                                        <a href="{{ url_for('uploaded_file', filename=booking.document_path) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                            <i class="fas fa-file"></i> View
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">No document</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.status == 'Pending' %}
+                                        <a href="{{ url_for('approve_booking', booking_id=booking.id) }}" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check"></i> Approve
+                                        </a>
+                                        <a href="{{ url_for('reject_booking', booking_id=booking.id) }}" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-times"></i> Reject
+                                        </a>
+                                    {% elif booking.status == 'Approved' %}
+                                        <a href="{{ url_for('cancel_booking', booking_id=booking.id) }}" class="btn btn-sm btn-warning" onclick="return confirm('Are you sure you want to cancel this approved booking?')">
+                                            <i class="fas fa-ban"></i> Cancel
+                                        </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('delete_booking', booking_id=booking.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this booking?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-building"></i> Venue Management</h5>
+            </div>
+            <div class="card-body">
+                <a href="{{ url_for('manage_venues') }}" class="btn btn-primary">
+                    <i class="fas fa-cog"></i> Manage Venues
+                </a>
+                <a href="{{ url_for('admin_users') }}" class="btn btn-info">
+                    <i class="fas fa-users-cog"></i> Manage Users
+                </a>
+                <a href="{{ url_for('new_booking') }}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Create Booking
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Conflict Alerts</h5>
+            </div>
+            <div class="card-body">
+                {% set pending_with_conflicts = 0 %}
+                {% for booking in bookings|selectattr('status', 'equalto', 'Pending') %}
+                    {% for approved_booking in bookings|selectattr('status', 'equalto', 'Approved') %}
+                        {% if approved_booking.venue_id == booking.venue_id and approved_booking.date == booking.date and approved_booking.id != booking.id %}
+                            {% set approved_start, approved_end = approved_booking.time_slot.split('-') %}
+                            {% set new_start, new_end = booking.time_slot.split('-') %}
+                            {% if (new_start < approved_end and new_end > approved_start) %}
+                                {% set pending_with_conflicts = pending_with_conflicts + 1 %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+                
+                {% if pending_with_conflicts > 0 %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>{{ pending_with_conflicts }}</strong> pending booking(s) have conflicts with approved bookings.
+                        <br><small>Check the pending bookings table for details.</small>
+                    </div>
+                {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> 
+                        No conflicts detected in pending bookings.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users"></i> User Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h6 class="text-primary">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h6>
+                        <small>Admins</small>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="text-warning">{{ users|selectattr('role', 'equalto', 'faculty')|list|length }}</h6>
+                        <small>Faculty</small>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="text-success">{{ users|selectattr('role', 'equalto', 'student')|list|length }}</h6>
+                        <small>Students</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Privilege Hierarchy Info -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-layer-group"></i> Booking Privilege Hierarchy</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <h6 class="text-primary"><i class="fas fa-user-tie"></i> Faculty</h6>
+                            <small class="text-muted">Highest Priority</small>
+                            <br><small>• Can override students & representatives</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <h6 class="text-warning"><i class="fas fa-star"></i> Representatives</h6>
+                            <small class="text-muted">Medium Priority</small>
+                            <br><small>• Can override regular students</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <h6 class="text-success"><i class="fas fa-user-graduate"></i> Regular Students</h6>
+                            <small class="text-muted">Standard Priority</small>
+                            <br><small>• Cannot override others</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="border rounded p-3">
+                            <h6 class="text-info"><i class="fas fa-shield-alt"></i> Admins</h6>
+                            <small class="text-muted">Full Control</small>
+                            <br><small>• Can manage all bookings</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

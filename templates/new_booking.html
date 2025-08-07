@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}New Booking - Venue Booking System{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2><i class="fas fa-calendar-plus"></i> New Booking Request</h2>
+        <p class="text-muted">Submit a new venue booking request</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-edit"></i> Booking Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="venue_id" class="form-label">Venue *</label>
+                                <select class="form-select" id="venue_id" name="venue_id" required onchange="checkAvailabilityForVenue()">
+                                    <option value="">Select a venue</option>
+                                    {% for venue in venues %}
+                                        <option value="{{ venue.id }}">{{ venue.name }} ({{ venue.location }}) - Capacity: {{ venue.capacity }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="date" class="form-label">Date *</label>
+                                <input type="date" class="form-control" id="date" name="date" required min="{{ today }}" onchange="checkAvailabilityForDate()">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="start_time" class="form-label">Start Time *</label>
+                                <input type="time" class="form-control" id="start_time" name="start_time" required min="09:00" max="17:00">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="end_time" class="form-label">End Time *</label>
+                                <input type="time" class="form-control" id="end_time" name="end_time" required min="09:00" max="17:00">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="document" class="form-label">Permission Document</label>
+                                <input type="file" class="form-control" id="document" name="document" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                                <div class="form-text">
+                                    Upload permission letter or approval document (PDF, DOC, or image files)
+                                </div>
+                            </div>
+                        </div>
+                    
+                    <div class="mb-3">
+                        <label for="purpose" class="form-label">Purpose/Description</label>
+                        <textarea class="form-control" id="purpose" name="purpose" rows="3" placeholder="Brief description of the event or purpose"></textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Submit Booking
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Availability Checker -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-search"></i> Check Availability</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="check-venue" class="form-label">Venue</label>
+                    <select class="form-select" id="check-venue">
+                        <option value="">Select venue</option>
+                        {% for venue in venues %}
+                            <option value="{{ venue.id }}">{{ venue.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="check-date" class="form-label">Date</label>
+                    <input type="date" class="form-control" id="check-date" min="{{ today }}">
+                </div>
+                <button class="btn btn-outline-primary w-100" onclick="checkAvailability()">
+                    <i class="fas fa-search"></i> Check
+                </button>
+                <div id="availability-results" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <!-- Booking Guidelines -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Booking Guidelines</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li><i class="fas fa-check text-success"></i> Check availability before booking</li>
+                    <li><i class="fas fa-check text-success"></i> Upload required permission documents</li>
+                    <li><i class="fas fa-check text-success"></i> Bookings are subject to approval</li>
+                    <li><i class="fas fa-exclamation-triangle text-warning"></i> Faculty can override student bookings</li>
+                    <li><i class="fas fa-clock text-info"></i> Allow 24-48 hours for approval</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function checkAvailabilityForVenue() {
+    const venueId = document.getElementById('venue_id').value;
+    const date = document.getElementById('date').value;
+    
+    if (venueId && date) {
+        checkAvailability();
+    }
+}
+
+function checkAvailabilityForDate() {
+    const venueId = document.getElementById('venue_id').value;
+    const date = document.getElementById('date').value;
+    
+    if (venueId && date) {
+        checkAvailability();
+    }
+}
+
+function checkAvailability() {
+    const venueId = document.getElementById('check-venue').value || document.getElementById('venue_id').value;
+    const date = document.getElementById('check-date').value || document.getElementById('date').value;
+    
+    if (!venueId || !date) {
+        alert('Please select both venue and date');
+        return;
+    }
+    
+    fetch(`/api/availability?venue_id=${venueId}&date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            displayAvailability(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error checking availability');
+        });
+}
+
+function displayAvailability(data) {
+    const resultsDiv = document.getElementById('availability-results');
+    let html = '<h6 class="mb-2">Booked Periods:</h6>';
+    if (!data.bookings || data.bookings.length === 0) {
+        html += '<div class="alert alert-success">No bookings for this date. All times available between 09:00 and 17:00.</div>';
+    } else {
+        data.bookings.forEach(b => {
+            html += `<div class="d-flex justify-content-between align-items-center mb-1">
+                <small>${b.start} - ${b.end}</small>
+                <span class="badge bg-danger">Booked by ${b.booked_by} (${b.user_role})</span>
+            </div>`;
+        });
+    }
+    resultsDiv.innerHTML = html;
+}
+
+// Set today's date as minimum for date inputs
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date').min = today;
+    document.getElementById('check-date').min = today;
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Venue Booking System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="display-4 text-primary mb-4">
+                    <i class="fas fa-building"></i> Venue Booking System
+                </h1>
+                <p class="lead mb-4">
+                    Efficiently manage and book venues for lectures, meetings, and events.
+                    <br>Supporting Faculty, Students, and Administrative staff.
+                </p>
+                
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card h-100 venue-card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-chalkboard-teacher fa-3x text-primary mb-3"></i>
+                                <h5 class="card-title">Faculty</h5>
+                                <p class="card-text">Book venues for lectures, meetings, and department events with priority access.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100 venue-card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-user-graduate fa-3x text-success mb-3"></i>
+                                <h5 class="card-title">Students</h5>
+                                <p class="card-text">Request venues for club events, workshops, and student activities.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100 venue-card">
+                            <div class="card-body text-center">
+                                <i class="fas fa-tachometer-alt fa-3x text-warning mb-3"></i>
+                                <h5 class="card-title">Admin</h5>
+                                <p class="card-text">Manage all bookings, approve requests, and monitor venue utilization.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                </div>
+                <div class="text-center mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> User accounts are managed by administrators only.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> System Features</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle text-success"></i> Role-based Access Control</h6>
+                        <ul class="list-unstyled">
+                            <li>• Admin: Full system management</li>
+                            <li>• Faculty: Priority booking with override capability</li>
+                            <li>• Students: Standard booking with permission requirements</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle text-success"></i> Advanced Features</h6>
+                        <ul class="list-unstyled">
+                            <li>• Real-time availability checking</li>
+                            <li>• Document upload for permissions</li>
+                            <li>• Conflict resolution and override system</li>
+                            <li>• Comprehensive booking history</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
